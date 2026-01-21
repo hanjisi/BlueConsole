@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using BlueConsole.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace BlueConsole
 {
@@ -11,6 +12,7 @@ namespace BlueConsole
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
+            Routing.RegisterRoute("ConPage", typeof(ConPage));
             return new Window(new AppShell());
         }
     }
