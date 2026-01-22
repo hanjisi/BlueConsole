@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace BlueConsole.Commands
 {
-    internal class InputCommand : Command
+    internal class InputCommand : ConsoleCommand
     {
         public string? Prefix { get; set; }
         public ValueType ValueType { get; set; }

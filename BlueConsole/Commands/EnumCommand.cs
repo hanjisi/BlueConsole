@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace BlueConsole.Commands
 {
-    internal class EnumCommand : Command
+    internal class EnumCommand : ConsoleCommand
     {
         public List<EnumOption> Options { get; set; } = new();
         [JsonIgnore]

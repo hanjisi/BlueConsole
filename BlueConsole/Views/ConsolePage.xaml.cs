@@ -1,4 +1,4 @@
-using AndroidX.Lifecycle;
+using BlueConsole.Commands;
 using BlueConsole.ViewModels;
 using System.Collections.Specialized;
 
@@ -25,6 +25,23 @@ public partial class ConsolePage : ContentPage
                 LogList.ScrollTo(vm.Logs.Count-1, position: ScrollToPosition.End, animate: true);
             });
         }
-        
+    }
+}
+
+public class CommandTemplateSelector : DataTemplateSelector
+{
+    public DataTemplate? SimpleTemplate { get; set; }
+    public DataTemplate? InputTemplate { get; set; }
+    public DataTemplate? EnumTemplate { get; set; }
+
+    protected override DataTemplate? OnSelectTemplate(object item, BindableObject container)
+    {
+        return item switch
+        {
+            SimpleCommand => SimpleTemplate,
+            InputCommand => InputTemplate,
+            EnumCommand => EnumTemplate,
+            _ => null
+        };
     }
 }

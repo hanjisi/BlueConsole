@@ -4,10 +4,83 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:BlueConsole.Controls"
+    xmlns:local="clr-namespace:BlueConsole.Views"
     xmlns:models="clr-namespace:BlueConsole.Models"
     xmlns:vm="clr-namespace:BlueConsole.ViewModels"
     Title="{Binding Device.Name}"
     x:DataType="{x:Type vm:ConsolePageViewModel}">
+
+    <ContentPage.Resources>
+        <DataTemplate x:Key="SimpleTemplate">
+            <VerticalStackLayout>
+                <Grid ColumnDefinitions="*,auto" HeightRequest="45">
+                    <Label Text="{Binding Name}" VerticalTextAlignment="Center" />
+                    <Button
+                        Grid.Column="1"
+                        HeightRequest="35"
+                        Text="发送"
+                        WidthRequest="70" />
+                </Grid>
+                <BoxView
+                    Grid.ColumnSpan="3"
+                    BackgroundColor="#E0E0E0"
+                    HeightRequest="0.5"
+                    VerticalOptions="End" />
+            </VerticalStackLayout>
+        </DataTemplate>
+
+        <DataTemplate x:Key="InputTemplate">
+            <VerticalStackLayout>
+                <Grid ColumnDefinitions="auto,*,auto" HeightRequest="45">
+                    <Label Text="{Binding Name}" VerticalTextAlignment="Center" />
+                    <Entry Grid.Column="1" Text="{Binding RuntimeValue}" />
+                    <Button
+                        Grid.Column="2"
+                        Command="{Binding SendCommand}"
+                        HeightRequest="35"
+                        Text="发送"
+                        WidthRequest="70" />
+                </Grid>
+                <BoxView
+                    Grid.ColumnSpan="3"
+                    BackgroundColor="#E0E0E0"
+                    HeightRequest="0.5"
+                    VerticalOptions="End" />
+            </VerticalStackLayout>
+        </DataTemplate>
+
+        <DataTemplate x:Key="EnumTemplate">
+            <VerticalStackLayout>
+                <Grid ColumnDefinitions="auto,*,auto" HeightRequest="45">
+                    <Label Text="{Binding Name}" VerticalTextAlignment="Center" />
+                    <Picker
+                        Title="点击选择"
+                        Grid.Column="1"
+                        ItemDisplayBinding="{Binding Name}"
+                        ItemsSource="{Binding Options}"
+                        SelectedItem="{Binding Selected}" />
+                    <Button
+                        Grid.Column="2"
+                        Command="{Binding SendCommand}"
+                        HeightRequest="35"
+                        Text="发送"
+                        WidthRequest="70" />
+                </Grid>
+                <BoxView
+                    Grid.ColumnSpan="3"
+                    BackgroundColor="#E0E0E0"
+                    HeightRequest="0.5"
+                    VerticalOptions="End" />
+            </VerticalStackLayout>
+        </DataTemplate>
+
+        <local:CommandTemplateSelector
+            x:Key="TemplateSelector"
+            EnumTemplate="{StaticResource EnumTemplate}"
+            InputTemplate="{StaticResource InputTemplate}"
+            SimpleTemplate="{StaticResource SimpleTemplate}" />
+    </ContentPage.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
@@ -32,11 +105,26 @@
 
         </CollectionView>
         <controls:GridSplitter Grid.Row="1" ResizeDirection="Rows" />
-        <Button
+        <Grid
             Grid.Row="2"
-            Command="{Binding AddLogCommand}"
-            HorizontalOptions="Center"
-            Text="Go to Settings Page"
-            VerticalOptions="Center" />
+            Padding="10,0"
+            RowDefinitions="auto,*">
+
+            <Grid ColumnDefinitions="*,auto">
+                <Entry />
+                <Button
+                    Grid.Column="1"
+                    HeightRequest="35"
+                    Text="发送"
+                    WidthRequest="70" />
+            </Grid>
+
+
+            <CollectionView
+                Grid.Row="1"
+                ItemTemplate="{StaticResource TemplateSelector}"
+                ItemsSource="{Binding Commands}"
+                SelectionMode="None" />
+        </Grid>
     </Grid>
 </ContentPage>

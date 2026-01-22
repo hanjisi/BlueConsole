@@ -2,7 +2,7 @@
 
 namespace BlueConsole.Commands
 {
-    internal class SimpleCommand : Command
+    internal class SimpleCommand : ConsoleCommand
     {
         public string? Payload { get; set; }
         public override CommandKind Kind => CommandKind.Simple;

@@ -6,7 +6,7 @@ namespace BlueConsole.Commands
     [JsonDerivedType(typeof(SimpleCommand), "simple")]
     [JsonDerivedType(typeof(InputCommand), "input")]
     [JsonDerivedType(typeof(EnumCommand), "enum")]
-    public abstract class Command
+    public abstract class ConsoleCommand
     {
         /// <summary>
         /// 命令名称
