@@ -174,24 +174,24 @@ namespace BlueConsole.Controls
             if (Parent is not Grid grid) return;
             int rowCount = grid.RowDefinitions.Count;
 
-            if (rowCount <= 1 || row == 0 || row == rowCount - 1)
+            if (rowCount <= 1 || row == 0 || row >= rowCount - 1)
                 return;
 
-            RowDefinition previousRow = grid.RowDefinitions[row - 1];
+            RowDefinition nextRow = grid.RowDefinitions[row + 1];
 
-            double previousRowHeight;
+            double nextRowHeight;
 
-            if (previousRow.Height.IsAbsolute)
-                previousRowHeight = previousRow.Height.Value;
+            if (nextRow.Height.IsAbsolute)
+                nextRowHeight = nextRow.Height.Value;
             else
-                previousRowHeight = (double)previousRow.GetType().GetRuntimeProperties().First((p) => p.Name == "ActualHeight").GetValue(previousRow);
+                nextRowHeight = (double)nextRow.GetType().GetRuntimeProperties().First((p) => p.Name == "ActualHeight").GetValue(nextRow);
 
-            var actualHeight = previousRowHeight + offsetY;
+            var actualHeight = nextRowHeight - offsetY;
 
             if (actualHeight < 0)
                 actualHeight = 0;
 
-            previousRow.Height = new GridLength(actualHeight);
+            nextRow.Height = new GridLength(actualHeight);
         }
     }
 

@@ -24,7 +24,7 @@
                 <DataTemplate x:DataType="{x:Type models:LogItem}">
                     <Label
                         FontFamily="Consolas"
-                        FontSize="14"
+                        FontSize="13"
                         LineBreakMode="WordWrap"
                         Text="{Binding DisplayText}" />
                 </DataTemplate>
