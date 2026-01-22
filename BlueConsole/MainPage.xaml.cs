@@ -20,7 +20,7 @@
 
             SemanticScreenReader.Announce(CounterBtn.Text);
 
-            await Shell.Current.GoToAsync("ConPage");
+            await Shell.Current.GoToAsync("ConsolePage");
         }
     }
 }

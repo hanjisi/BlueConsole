@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="BlueConsole.Views.ConsolePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:BlueConsole.Controls"
+    Title="ConsolePage">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="300" />
+        </Grid.RowDefinitions>
+        <Button
+            Command="{Binding NavigateToSettingsPageCommand}"
+            HorizontalOptions="Center"
+            Text="Go to Settings Page"
+            VerticalOptions="Center" />
+        <controls:GridSplitter Grid.Row="1" ResizeDirection="Rows" />
+        <Button
+            Grid.Row="2"
+            Command="{Binding NavigateToSettingsPageCommand}"
+            HorizontalOptions="Center"
+            Text="Go to Settings Page"
+            VerticalOptions="Center" />
+    </Grid>
+</ContentPage>
