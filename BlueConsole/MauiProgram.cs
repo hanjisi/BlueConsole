@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using BlueConsole.ViewModels;
+using BlueConsole.Views;
 using CommunityToolkit.Maui;
+using Microsoft.Extensions.Logging;
 
 namespace BlueConsole
 {
@@ -20,7 +22,9 @@ namespace BlueConsole
 #if DEBUG
     		builder.Logging.AddDebug();
 #endif
-            builder.UseMauiCommunityToolkit();
+
+            builder.Services.AddSingleton<ScanPageViewModel>();
+            builder.Services.AddTransient<ConsolePageViewModel>();
             return builder.Build();
         }
     }

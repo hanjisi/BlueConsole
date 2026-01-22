@@ -4,22 +4,37 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:BlueConsole.Controls"
-    Title="ConsolePage">
+    xmlns:models="clr-namespace:BlueConsole.Models"
+    xmlns:vm="clr-namespace:BlueConsole.ViewModels"
+    Title="{Binding Device.Name}"
+    x:DataType="{x:Type vm:ConsolePageViewModel}">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
+            <RowDefinition />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="300" />
         </Grid.RowDefinitions>
-        <Button
-            Command="{Binding NavigateToSettingsPageCommand}"
-            HorizontalOptions="Center"
-            Text="Go to Settings Page"
-            VerticalOptions="Center" />
+        <CollectionView
+            x:Name="LogList"
+            Grid.Row="0"
+            ItemsSource="{Binding Logs}"
+            SelectionMode="None">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type models:LogItem}">
+                    <Label
+                        FontFamily="Consolas"
+                        FontSize="14"
+                        LineBreakMode="WordWrap"
+                        Text="{Binding DisplayText}" />
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
         <controls:GridSplitter Grid.Row="1" ResizeDirection="Rows" />
         <Button
             Grid.Row="2"
-            Command="{Binding NavigateToSettingsPageCommand}"
+            Command="{Binding AddLogCommand}"
             HorizontalOptions="Center"
             Text="Go to Settings Page"
             VerticalOptions="Center" />

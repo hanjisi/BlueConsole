@@ -13,31 +13,41 @@
     <ControlTemplate x:Key="GridSplitterControlTemplate">
         <Grid x:Name="PART_GridSplitter">
             <Grid BackgroundColor="{TemplateBinding BackgroundColor}">
-                <StackLayout
-                    x:Name="PART_GridSplitterIndicator"
+                <ContentPresenter
+                    Content="{TemplateBinding Element}"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Fill" />
+
+                <Grid
+                    x:Name="PART_DragHandle"
+                    BackgroundColor="Transparent"
+                    HeightRequest="32"
                     HorizontalOptions="Center"
-                    IsVisible="{TemplateBinding Element,
-                                                Converter={StaticResource ElementToBoolConverter}}"
-                    VerticalOptions="Center"
-                    WidthRequest="16">
-                    <BoxView
-                        Margin="0,1"
-                        Background="{StaticResource GridSplitterIndicatorBrush}"
-                        HeightRequest="2" />
-                    <BoxView
-                        Margin="0,1"
-                        Background="{StaticResource GridSplitterIndicatorBrush}"
-                        HeightRequest="2" />
-                    <BoxView
-                        Margin="0,1"
-                        Background="{StaticResource GridSplitterIndicatorBrush}"
-                        HeightRequest="2" />
-                </StackLayout>
+                    VerticalOptions="Start">
+
+                    <StackLayout
+                        x:Name="PART_GridSplitterIndicator"
+                        HorizontalOptions="Center"
+                        IsVisible="{TemplateBinding Element,
+                                                    Converter={StaticResource ElementToBoolConverter}}"
+                        VerticalOptions="Center"
+                        WidthRequest="16">
+                        <BoxView
+                            Margin="0,1"
+                            Background="{StaticResource GridSplitterIndicatorBrush}"
+                            HeightRequest="2" />
+                        <BoxView
+                            Margin="0,1"
+                            Background="{StaticResource GridSplitterIndicatorBrush}"
+                            HeightRequest="2" />
+                        <BoxView
+                            Margin="0,1"
+                            Background="{StaticResource GridSplitterIndicatorBrush}"
+                            HeightRequest="2" />
+                    </StackLayout>
+                </Grid>
             </Grid>
-            <ContentPresenter
-                Content="{TemplateBinding Element}"
-                HorizontalOptions="Fill"
-                VerticalOptions="Fill" />
+
         </Grid>
     </ControlTemplate>
 
@@ -45,7 +55,7 @@
         <Setter Property="HorizontalOptions" Value="Fill" />
         <Setter Property="VerticalOptions" Value="Fill" />
         <Setter Property="MinimumWidthRequest" Value="16" />
-        <Setter Property="MinimumHeightRequest" Value="32" />
+        <Setter Property="MinimumHeightRequest" Value="50" />
         <Setter Property="ControlTemplate" Value="{StaticResource GridSplitterControlTemplate}" />
     </Style>
 </ResourceDictionary>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="BlueConsole.Views.ScanPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:BlueConsole.Models"
+    xmlns:vm="clr-namespace:BlueConsole.ViewModels"
+    Title="设备扫描"
+    x:DataType="{x:Type vm:ScanPageViewModel}">
+    <Grid RowDefinitions="Auto,*">
+        <BoxView BackgroundColor="#E0E0E0" HeightRequest="0.5" />
+        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}">
+            <CollectionView ItemsSource="{Binding FiltedDevice}" SelectionMode="None">
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="{x:Type models:DeviceWrapper}">
+                        <Grid>
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding ConectCommand}" />
+                            </Grid.GestureRecognizers>
+
+                            <Grid
+                                Padding="12"
+                                ColumnDefinitions="*,Auto"
+                                RowDefinitions="Auto,Auto">
+                                <Label
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    FontAttributes="Bold"
+                                    FontSize="16"
+                                    LineBreakMode="TailTruncation"
+                                    Text="{Binding Name}" />
+                                <Label
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    FontSize="12"
+                                    LineBreakMode="MiddleTruncation"
+                                    Text="{Binding Address}"
+                                    TextColor="Gray" />
+                                <VerticalStackLayout
+                                    Grid.RowSpan="2"
+                                    Grid.Column="1"
+                                    HorizontalOptions="End"
+                                    Spacing="4"
+                                    VerticalOptions="Center">
+                                    <Label
+                                        FontSize="12"
+                                        HorizontalTextAlignment="End"
+                                        Text="{Binding Rssi, StringFormat='{0} dBm'}"
+                                        TextColor="#666" />
+                                    <BoxView
+                                        CornerRadius="5"
+                                        HeightRequest="10"
+                                        HorizontalOptions="End"
+                                        IsVisible="False"
+                                        WidthRequest="10"
+                                        Color="#2ECC71" />
+                                </VerticalStackLayout>
+
+                            </Grid>
+
+                            <!--<BoxView
+                                BackgroundColor="#E0E0E0"
+                                HeightRequest="0.5"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="End" />-->
+
+                        </Grid>
+
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+
+
+        </RefreshView>
+    </Grid>
+</ContentPage>

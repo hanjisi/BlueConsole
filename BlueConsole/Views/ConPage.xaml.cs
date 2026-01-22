@@ -1,3 +1,4 @@
+using BlueConsole.Models;
 using System.Collections.ObjectModel;
 using System.Text;
 
@@ -53,22 +54,22 @@ public partial class ConPage : ContentPage
     void AppendMockLog(object? state)
     {
         // 模拟一条“串口数据”
-        var raw = CreateMockPacket();
+        //var raw = CreateMockPacket();
 
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            var item = new LogItem
-            {
-                Time = DateTime.Now,
-                Raw = raw
-            };
+        //MainThread.BeginInvokeOnMainThread(() =>
+        //{
+        //    var item = new LogItem
+        //    {
+        //        Time = DateTime.Now,
+        //        Raw = raw
+        //    };
 
-            item.UpdateDisplay(_showHex);
-            Logs.Add(item);
+        //    item.UpdateDisplay(_showHex);
+        //    Logs.Add(item);
 
-            // 自动滚动到最新
-            LogList.ScrollTo(item, position: ScrollToPosition.End, animate: false);
-        });
+        //    // 自动滚动到最新
+        //    LogList.ScrollTo(item, position: ScrollToPosition.End, animate: false);
+        //});
     }
 
     byte[] CreateMockPacket()
@@ -90,10 +91,10 @@ public partial class ConPage : ContentPage
 
     void ToggleHex()
     {
-        _showHex = !_showHex;
+        //_showHex = !_showHex;
 
-        foreach (var log in Logs)
-            log.UpdateDisplay(_showHex);
+        //foreach (var log in Logs)
+        //    log.UpdateDisplay(_showHex);
     }
 
     #endregion
