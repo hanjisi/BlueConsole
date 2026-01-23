@@ -79,13 +79,32 @@
             EnumTemplate="{StaticResource EnumTemplate}"
             InputTemplate="{StaticResource InputTemplate}"
             SimpleTemplate="{StaticResource SimpleTemplate}" />
+
+        <Style x:Key="IndicatorLabelStyle" TargetType="Label">
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <VisualStateGroupList>
+                    <VisualStateGroup x:Name="CommonStates">
+                        <VisualState x:Name="Normal">
+                            <VisualState.Setters>
+                                <Setter Property="TextColor" Value="LightGray" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="Selected">
+                            <VisualState.Setters>
+                                <Setter Property="TextColor" Value="Black" />
+                            </VisualState.Setters>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateGroupList>
+            </Setter>
+        </Style>
     </ContentPage.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="300" />
+            <RowDefinition Height="400" />
         </Grid.RowDefinitions>
         <CollectionView
             x:Name="LogList"
@@ -110,21 +129,96 @@
             Padding="10,0"
             RowDefinitions="auto,*">
 
-            <Grid ColumnDefinitions="*,auto">
-                <Entry />
-                <Button
-                    Grid.Column="1"
-                    HeightRequest="35"
-                    Text="发送"
-                    WidthRequest="70" />
+            <VerticalStackLayout HeightRequest="45">
+                <Grid ColumnDefinitions="*,auto">
+                    <Entry />
+                    <Button
+                        Grid.Column="1"
+                        Command="{Binding AddLogCommand}"
+                        HeightRequest="35"
+                        Text="发送"
+                        WidthRequest="70" />
+                </Grid>
+                <BoxView
+                    Grid.ColumnSpan="3"
+                    BackgroundColor="#E0E0E0"
+                    HeightRequest="0.5"
+                    VerticalOptions="End" />
+            </VerticalStackLayout>
+
+
+
+            <Grid Grid.Row="1" RowDefinitions="auto,*">
+                <IndicatorView
+                    x:Name="indicatorView"
+                    HorizontalOptions="Start"
+                    IndicatorColor="Transparent"
+                    ItemsSource="{Binding Tabs}"
+                    SelectedIndicatorColor="Transparent">
+                    <IndicatorView.IndicatorTemplate>
+                        <DataTemplate>
+                            <Grid
+                                x:Name="Root"
+                                Margin="0,0,10,0"
+                                HeightRequest="35">
+                                <Label
+                                    x:Name="TitleLabel"
+                                    FontSize="14"
+                                    Text="{Binding Title}"
+                                    TextColor="#999999"
+                                    VerticalOptions="Center" />
+
+                                <BoxView
+                                    x:Name="IndicatorLine"
+                                    HeightRequest="2"
+                                    IsVisible="False"
+                                    VerticalOptions="End"
+                                    WidthRequest="{Binding Source={x:Reference TitleLabel}, Path=WidthRequest}"
+                                    Color="{StaticResource Primary}" />
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+
+                                        <VisualState x:Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter TargetName="TitleLabel" Property="Label.TextColor" Value="#999999" />
+                                                <Setter TargetName="TitleLabel" Property="Label.FontAttributes" Value="None" />
+                                                <Setter TargetName="IndicatorLine" Property="IsVisible" Value="False" />
+                                                <Setter TargetName="Root" Property="Opacity" Value="1" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter TargetName="Root" Property="Background" Value="red" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+
+                                        <VisualState x:Name="Selected">
+                                            <VisualState.Setters>
+                                                <Setter TargetName="TitleLabel" Property="Label.TextColor" Value="#222222" />
+                                                <Setter TargetName="TitleLabel" Property="Label.FontAttributes" Value="Bold" />
+                                                <Setter TargetName="IndicatorLine" Property="IsVisible" Value="True" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                            </Grid>
+                        </DataTemplate>
+                    </IndicatorView.IndicatorTemplate>
+                </IndicatorView>
+                <CarouselView
+                    Grid.Row="1"
+                    IndicatorView="indicatorView"
+                    ItemsSource="{Binding Tabs}">
+                    <CarouselView.ItemTemplate>
+                        <DataTemplate>
+                            <CollectionView ItemTemplate="{StaticResource TemplateSelector}" ItemsSource="{Binding Commands}" />
+                        </DataTemplate>
+                    </CarouselView.ItemTemplate>
+                </CarouselView>
             </Grid>
-
-
-            <CollectionView
-                Grid.Row="1"
-                ItemTemplate="{StaticResource TemplateSelector}"
-                ItemsSource="{Binding Commands}"
-                SelectionMode="None" />
         </Grid>
     </Grid>
 </ContentPage>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueConsole Prototype</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --bg-hover: #2c2c2c;
+            --primary: #2196F3; /* BlueConsole Blue */
+            --primary-dark: #1976D2;
+            --rx-green: #00E676;
+            --tx-blue: #448AFF;
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: #333333;
+            --splitter-height: 12px;
+        }
+
+        * { box-sizing: border-box; }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow: hidden; /* Prevent body scroll, handle inside app */
+        }
+
+        /* --- App Container --- */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* --- Header --- */
+        .header {
+            height: 50px;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .header-title { font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 8px;}
+        .header-title span { color: var(--primary); }
+        .conn-status { font-size: 12px; color: var(--rx-green); display: flex; align-items: center; gap: 6px;}
+        .conn-dot { width: 8px; height: 8px; background-color: var(--rx-green); border-radius: 50%; box-shadow: 0 0 5px var(--rx-green); }
+
+        /* --- Log Area (Top) --- */
+        .log-area {
+            flex-grow: 1; /* Takes remaining space initially */
+            background-color: #000;
+            overflow-y: auto;
+            padding: 10px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            min-height: 100px; /* Limit shrinking */
+        }
+        .log-entry { margin-bottom: 4px; line-height: 1.4; word-break: break-all; }
+        .log-time { color: #666; margin-right: 8px; }
+        .log-rx { color: var(--rx-green); }
+        .log-tx { color: var(--tx-blue); }
+
+        /* --- Splitter --- */
+        .splitter {
+            height: var(--splitter-height);
+            background-color: #2d2d2d;
+            cursor: row-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .splitter-handle {
+            width: 40px;
+            height: 4px;
+            background-color: #555;
+            border-radius: 2px;
+        }
+        .splitter:hover .splitter-handle { background-color: var(--primary); }
+
+        /* --- Operation Area (Bottom) --- */
+        .operation-area {
+            height: 50%; /* Initial height */
+            background-color: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+
+        /* 1. Global Tools & Custom Send */
+        .send-panel {
+            padding: 10px;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        
+        .global-tools {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+        
+        .tool-item { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .tool-checkbox { accent-color: var(--primary); }
+        .tool-select { background: #333; color: white; border: none; padding: 2px 5px; border-radius: 4px; }
+        
+        .custom-input-box {
+            display: flex;
+            gap: 8px;
+        }
+        .main-input {
+            flex: 1;
+            background: #121212;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            resize: none;
+            height: 40px;
+            font-family: monospace;
+        }
+        .main-input:focus { outline: 1px solid var(--primary); border-color: var(--primary); }
+        .btn-send {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-send:active { transform: translateY(1px); }
+
+        /* 2. Quick Command Tabs */
+        .tabs-header {
+            display: flex;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: white; background-color: #252525; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background-color: #252525; }
+        .tab-add { margin-left: auto; padding: 10px 15px; color: var(--text-dim); cursor: pointer; }
+        .tab-add:hover { color: white; }
+
+        /* 3. Quick Command Content */
+        .tabs-content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: var(--bg-dark);
+        }
+        
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        /* Groups (Accordion) */
+        .cmd-group { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+        .group-header {
+            background-color: #252525;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #ddd;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+        .group-header:hover { background-color: #2c2c2c; }
+        .group-body { padding: 8px; background-color: #1e1e1e; display: grid; gap: 8px; }
+
+        /* Grid for Simple Commands */
+        .grid-simple { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+        
+        /* Layout for Input/Enum Commands */
+        .list-layout { display: flex; flex-direction: column; gap: 8px; }
+
+        /* Command Item Styles */
+        .cmd-btn {
+            background-color: #333;
+            color: #eee;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            transition: background 0.2s;
+        }
+        .cmd-btn:hover { background-color: #444; border-color: #666; }
+        .cmd-btn:active { background-color: var(--primary); border-color: var(--primary); }
+
+        .cmd-row { display: flex; gap: 8px; align-items: center; }
+        .cmd-label { font-size: 12px; color: #aaa; width: 80px; flex-shrink: 0; }
+        .cmd-input { flex: 1; background: #121212; border: 1px solid #333; color: white; padding: 5px; border-radius: 3px; }
+        .cmd-select { flex: 1; background: #121212; border: 1px solid #333; color: white; padding: 5px; border-radius: 3px; }
+        .btn-small { padding: 6px 12px; background-color: #333; color: var(--primary); border: 1px solid #333; border-radius: 3px; cursor: pointer;}
+        .btn-small:hover { background-color: #444; }
+
+        /* --- Modal (Editor) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.open { display: flex; }
+        
+        .modal-window {
+            background-color: var(--bg-panel);
+            width: 90%;
+            max-width: 450px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .modal-header { padding: 15px; border-bottom: 1px solid var(--border); font-weight: bold; }
+        .modal-body { padding: 15px; max-height: 60vh; overflow-y: auto; }
+        .modal-footer { padding: 15px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 5px; }
+        .form-control { width: 100%; background: #121212; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; }
+        
+        .type-selector { display: flex; background: #121212; border-radius: 4px; padding: 2px; margin-bottom: 15px; }
+        .type-option { flex: 1; text-align: center; padding: 6px; font-size: 12px; cursor: pointer; border-radius: 3px; color: #888; }
+        .type-option.selected { background-color: var(--primary); color: white; font-weight: bold; }
+
+        .btn-cancel { background: transparent; border: 1px solid #444; color: #aaa; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+        .btn-save { background: var(--primary); border: none; color: white; padding: 8px 20px; border-radius: 4px; cursor: pointer; }
+
+        /* Dynamic Fields visibility */
+        .dynamic-field { display: none; }
+        .dynamic-field.show { display: block; }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+    <div class="header">
+        <div class="header-title"><span>>_</span> BlueConsole</div>
+        <div class="conn-status">
+            <div class="conn-dot"></div> Connected: HC-05_Dev
+        </div>
+    </div>
+
+    <div class="log-area" id="logArea">
+        <div class="log-entry"><span class="log-time">[10:00:01.050]</span><span class="log-rx">RX: System Boot Init...</span></div>
+        <div class="log-entry"><span class="log-time">[10:00:01.200]</span><span class="log-rx">RX: Sensor Check: OK</span></div>
+        <div class="log-entry"><span class="log-time">[10:00:05.500]</span><span class="log-tx">TX: AT+VERSION?</span></div>
+        <div class="log-entry"><span class="log-time">[10:00:05.580]</span><span class="log-rx">RX: +VERSION:2.0-20230815</span></div>
+        <div class="log-entry"><span class="log-time">[10:00:10.000]</span><span class="log-tx">TX: SET_LED=1</span></div>
+        <div class="log-entry"><span class="log-time">[10:00:10.100]</span><span class="log-rx">RX: OK</span></div>
+        </div>
+
+    <div class="splitter" id="splitter">
+        <div class="splitter-handle"></div>
+    </div>
+
+    <div class="operation-area" id="opArea">
+        
+        <div class="send-panel">
+            <div class="global-tools">
+                <label class="tool-item">
+                    <input type="checkbox" class="tool-checkbox"> HEX发送
+                </label>
+                <div class="tool-item">
+                    行尾: 
+                    <select class="tool-select">
+                        <option>None</option>
+                        <option>\r\n</option>
+                        <option>\n</option>
+                        <option>\r</option>
+                    </select>
+                </div>
+                <label class="tool-item" style="margin-left: auto; color: #aaa;">
+                    <input type="checkbox" class="tool-checkbox"> 循环(ms): 1000
+                </label>
+                <div class="tool-item" style="color: #ff5252; cursor: pointer;">
+                    [清空日志]
+                </div>
+            </div>
+            <div class="custom-input-box">
+                <textarea class="main-input" placeholder="在此输入自定义指令..."></textarea>
+                <button class="btn-send">发送</button>
+            </div>
+        </div>
+
+        <div class="tabs-header">
+            <div class="tab active" onclick="switchTab('simple')">简单指令</div>
+            <div class="tab" onclick="switchTab('input')">输入指令</div>
+            <div class="tab" onclick="switchTab('enum')">枚举指令</div>
+            <div class="tab-add" onclick="openModal()">+</div>
+        </div>
+
+        <div class="tabs-content-container">
+            
+            <div id="tab-simple" class="tab-pane active">
+                <div class="cmd-group">
+                    <div class="group-header" onclick="toggleGroup(this)">常用控制 (点击展开/折叠)</div>
+                    <div class="group-body grid-simple">
+                        <div class="cmd-btn">复位系统</div>
+                        <div class="cmd-btn">查询版本</div>
+                        <div class="cmd-btn">开启日志</div>
+                        <div class="cmd-btn">关闭日志</div>
+                        <div class="cmd-btn" style="color:#ff5252">紧急停止</div>
+                    </div>
+                </div>
+                <div class="cmd-group">
+                    <div class="group-header" onclick="toggleGroup(this)">LED 测试</div>
+                    <div class="group-body grid-simple">
+                        <div class="cmd-btn">Red ON</div>
+                        <div class="cmd-btn">Red OFF</div>
+                        <div class="cmd-btn">Green ON</div>
+                        <div class="cmd-btn">Green OFF</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-input" class="tab-pane">
+                <div class="cmd-group">
+                    <div class="group-header" onclick="toggleGroup(this)">参数配置</div>
+                    <div class="group-body list-layout">
+                        <div class="cmd-row">
+                            <div class="cmd-label">设置电压(mV)</div>
+                            <input type="number" class="cmd-input" placeholder="输入数值 (例如 3300)">
+                            <button class="btn-small">发送</button>
+                        </div>
+                        <div class="cmd-row">
+                            <div class="cmd-label">Wi-Fi SSID</div>
+                            <input type="text" class="cmd-input" placeholder="输入Wi-Fi名称">
+                            <button class="btn-small">发送</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-enum" class="tab-pane">
+                <div class="cmd-group">
+                    <div class="group-header" onclick="toggleGroup(this)">模式选择</div>
+                    <div class="group-body list-layout">
+                        <div class="cmd-row">
+                            <div class="cmd-label">工作模式</div>
+                            <select class="cmd-select">
+                                <option>低功耗模式 (Low Power)</option>
+                                <option>性能模式 (Performance)</option>
+                                <option>待机模式 (Idle)</option>
+                            </select>
+                            <button class="btn-small">发送</button>
+                        </div>
+                        <div class="cmd-row">
+                            <div class="cmd-label">采样频率</div>
+                            <select class="cmd-select">
+                                <option>10 Hz</option>
+                                <option>50 Hz</option>
+                                <option>100 Hz</option>
+                                <option>1000 Hz</option>
+                            </select>
+                            <button class="btn-small">发送</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="editorModal">
+    <div class="modal-window">
+        <div class="modal-header">指令编辑器</div>
+        <div class="modal-body">
+            
+            <div class="type-selector">
+                <div class="type-option selected" onclick="selectType('simple', this)">简单指令</div>
+                <div class="type-option" onclick="selectType('input', this)">输入指令</div>
+                <div class="type-option" onclick="selectType('enum', this)">枚举指令</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">指令显示名称</label>
+                <input type="text" class="form-control" placeholder="例如：开启电机">
+            </div>
+            <div class="form-group">
+                <label class="form-label">所属分组</label>
+                <select class="form-control">
+                    <option>常用控制</option>
+                    <option>LED 测试</option>
+                    <option>+ 新建分组...</option>
+                </select>
+            </div>
+
+            <div id="fields-simple" class="dynamic-field show">
+                <div class="form-group">
+                    <label class="form-label">数据格式</label>
+                    <div style="display:flex; gap:10px; color:#aaa; font-size:13px;">
+                        <label><input type="radio" name="fmt" checked> ASCII</label>
+                        <label><input type="radio" name="fmt"> HEX</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">发送内容</label>
+                    <textarea class="form-control" rows="3" placeholder="输入要发送的数据"></textarea>
+                </div>
+            </div>
+
+            <div id="fields-input" class="dynamic-field">
+                <div class="form-group">
+                    <label class="form-label">数据前缀 (选填)</label>
+                    <input type="text" class="form-control" placeholder="例如: SET_VOLT=">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">数据后缀 (选填)</label>
+                    <input type="text" class="form-control" placeholder="例如: mV">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">输入框提示文字 (Placeholder)</label>
+                    <input type="text" class="form-control" placeholder="用户看到的提示...">
+                </div>
+                <p style="font-size:11px; color:#666;">* 最终发送 = 前缀 + 用户输入值 + 后缀</p>
+            </div>
+
+            <div id="fields-enum" class="dynamic-field">
+                <label class="form-label">枚举列表 (标签 | 实际值)</label>
+                <div style="border: 1px solid #333; padding: 5px; border-radius: 4px; height: 100px; overflow-y:auto; margin-bottom: 5px;">
+                    <div style="display:flex; gap:5px; margin-bottom:5px;">
+                        <input type="text" class="form-control" placeholder="标签: 开" style="padding:4px;">
+                        <input type="text" class="form-control" placeholder="值: ON" style="padding:4px;">
+                        <button style="background:#333; border:none; color:red;">x</button>
+                    </div>
+                    <div style="display:flex; gap:5px; margin-bottom:5px;">
+                        <input type="text" class="form-control" placeholder="标签: 关" style="padding:4px;">
+                        <input type="text" class="form-control" placeholder="值: OFF" style="padding:4px;">
+                        <button style="background:#333; border:none; color:red;">x</button>
+                    </div>
+                </div>
+                <button class="btn-small" style="width:100%">+ 添加枚举项</button>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">取消</button>
+            <button class="btn-save" onclick="closeModal()">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 1. Splitter Logic (Resize) ---
+    const splitter = document.getElementById('splitter');
+    const logArea = document.getElementById('logArea');
+    const opArea = document.getElementById('opArea');
+    const app = document.getElementById('app');
+
+    let isDragging = false;
+
+    splitter.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        document.body.style.cursor = 'row-resize';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+        if (!isDragging) return;
+        
+        // Calculate new heights based on mouse Y
+        const containerHeight = app.clientHeight;
+        const headerHeight = 50; 
+        const splitterHeight = 12;
+        
+        // Constrain movement
+        let newLogHeight = e.clientY - headerHeight;
+        if (newLogHeight < 100) newLogHeight = 100;
+        if (newLogHeight > containerHeight - 150) newLogHeight = containerHeight - 150;
+
+        logArea.style.flexGrow = 0;
+        logArea.style.height = newLogHeight + 'px';
+        opArea.style.height = 'auto'; // Let flex take over remainder
+        opArea.style.flex = 1; 
+    });
+
+    document.addEventListener('mouseup', function(e) {
+        if(isDragging) {
+            isDragging = false;
+            document.body.style.cursor = 'default';
+        }
+    });
+
+    // --- 2. Tab Switching Logic ---
+    function switchTab(tabName) {
+        // Update Tab Header
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        // Find the one clicked (simplified for proto)
+        if(tabName === 'simple') tabs[0].classList.add('active');
+        if(tabName === 'input') tabs[1].classList.add('active');
+        if(tabName === 'enum') tabs[2].classList.add('active');
+
+        // Update Content
+        const panes = document.querySelectorAll('.tab-pane');
+        panes.forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tabName).classList.add('active');
+    }
+
+    // --- 3. Accordion Group Logic ---
+    function toggleGroup(header) {
+        const body = header.nextElementSibling;
+        if (body.style.display === 'none') {
+            body.style.display = header.parentElement.classList.contains('grid-simple') ? 'grid' : 'flex';
+        } else {
+            // Check computed style to determine toggle (simplified: just toggle class or inline)
+            // For this proto, we assume it's open by default
+            const isGrid = header.parentElement.querySelector('.grid-simple');
+            
+            if(body.style.display === '' || body.style.display === 'grid' || body.style.display === 'flex') {
+                body.style.display = 'none';
+                header.style.opacity = '0.7';
+            } else {
+                body.style.display = isGrid ? 'grid' : 'flex';
+                header.style.opacity = '1';
+            }
+        }
+    }
+
+    // --- 4. Modal Logic ---
+    function openModal() {
+        document.getElementById('editorModal').classList.add('open');
+    }
+    function closeModal() {
+        document.getElementById('editorModal').classList.remove('open');
+    }
+
+    // Modal Type Switching
+    function selectType(type, element) {
+        // Update Pills
+        document.querySelectorAll('.type-option').forEach(el => el.classList.remove('selected'));
+        element.classList.add('selected');
+
+        // Show/Hide Fields
+        document.querySelectorAll('.dynamic-field').forEach(el => el.classList.remove('show'));
+        document.getElementById('fields-' + type).classList.add('show');
+    }
+
+    // Close modal on clicking outside
+    document.getElementById('editorModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+</script>
+
+</body>
+</html>

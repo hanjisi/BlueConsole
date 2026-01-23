@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlueConsole Pro</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --bg-sidebar: #181818;
+            --primary: #2196F3;
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: #333333;
+            --sidebar-width: 280px;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; font-family: sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; }
+
+        /* --- 布局容器 --- */
+        .app-container { display: flex; flex-direction: column; height: 100%; transition: transform 0.3s; }
+
+        /* --- 顶部栏 --- */
+        .header {
+            height: 50px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 16px; justify-content: space-between;
+        }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .menu-btn { cursor: pointer; font-size: 20px; padding: 5px; }
+        .current-profile-name { font-weight: bold; font-size: 16px; display: flex; flex-direction: column; }
+        .current-profile-sub { font-size: 10px; color: var(--primary); font-weight: normal;}
+
+        /* --- 侧边栏 (Sidebar) --- */
+        .sidebar-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 900;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .sidebar {
+            position: fixed; top: 0; left: 0; height: 100%; width: var(--sidebar-width);
+            background: var(--bg-sidebar); z-index: 901;
+            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; border-right: 1px solid var(--border);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+        }
+        .sidebar.open { transform: translateX(0); }
+
+        .sidebar-header { padding: 20px 16px; border-bottom: 1px solid var(--border); background: #252525;}
+        .sidebar-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .sidebar-desc { font-size: 12px; color: #888; }
+
+        .profile-list { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .profile-item {
+            padding: 12px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            border-left: 3px solid transparent;
+        }
+        .profile-item:hover { background: #222; }
+        .profile-item.active { background: #2c2c2c; border-left-color: var(--primary); }
+        .profile-info h4 { margin: 0; font-size: 14px; }
+        .profile-info p { margin: 2px 0 0 0; font-size: 11px; color: #666; }
+        .profile-actions { opacity: 0; color: #aaa; font-size: 12px; }
+        .profile-item:hover .profile-actions { opacity: 1; }
+
+        .sidebar-footer { padding: 16px; border-top: 1px solid var(--border); background: #202020; }
+        .action-btn {
+            display: block; width: 100%; padding: 10px; margin-bottom: 8px;
+            background: #333; color: white; border: 1px solid #444; border-radius: 4px;
+            cursor: pointer; text-align: center; font-size: 13px;
+        }
+        .action-btn:hover { background: #444; }
+        .action-btn.primary { background: var(--primary); border: none; }
+
+        /* --- 主内容区 (日志 + 操作) --- */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .log-area { flex: 1; background: #000; padding: 10px; overflow-y: auto; font-family: monospace; font-size: 13px; }
+        .splitter { height: 10px; background: #2d2d2d; cursor: row-resize; flex-shrink: 0; text-align:center; line-height:2px; color:#555;}
+        .operation-area { height: 300px; background: var(--bg-dark); display: flex; flex-direction: column; }
+        
+        /* 简单模拟操作区样式 */
+        .tabs { display: flex; background: #1a1a1a; border-bottom: 1px solid #333; }
+        .tab { padding: 10px 20px; cursor: pointer; color: #888; border-bottom: 2px solid transparent;}
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: #252525; }
+        .tab-add { margin-left: auto; padding: 10px; cursor: pointer; }
+
+        .cmd-container { flex: 1; padding: 10px; overflow-y: auto; }
+        .cmd-group { margin-bottom: 15px; border: 1px solid #333; border-radius: 4px; }
+        .group-header { padding: 8px; background: #252525; font-size: 12px; color: #aaa; font-weight: bold; }
+        .group-body { padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .cmd-btn { padding: 8px 12px; background: #333; border: 1px solid #444; border-radius: 4px; color: #eee; cursor: pointer; font-size: 12px;}
+
+        /* --- Modal --- */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-box { background: var(--bg-panel); width: 90%; max-width: 400px; padding: 20px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
+        .form-group { margin-bottom: 15px; }
+        .label { display: block; color: #888; margin-bottom: 5px; font-size: 12px; }
+        .input { width: 100%; padding: 8px; background: #121212; border: 1px solid #444; color: white; border-radius: 4px; }
+        .btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        
+        /* 组合输入框样式 (为了支持新建分组) */
+        .combo-box { position: relative; }
+        .combo-select { width: 100%; padding: 8px; background: #121212; border: 1px solid #444; color: white; border-radius: 4px; appearance: none; }
+        .combo-input { display:none; width: 100%; padding: 8px; background: #121212; border: 1px solid var(--primary); color: white; border-radius: 4px; }
+        .combo-input.show { display: block; }
+        .combo-toggle { position: absolute; right: 10px; top: 8px; font-size: 10px; color: var(--primary); cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-title">配置文件</div>
+        <div class="sidebar-desc">管理您的设备配置库</div>
+    </div>
+    
+    <div class="profile-list" id="profileList">
+        </div>
+
+    <div class="sidebar-footer">
+        <button class="action-btn" onclick="importFromURL()">☁️ 从 URL 导入</button>
+        <button class="action-btn" onclick="importFromPaste()">📋 粘贴 JSON 导入</button>
+        <button class="action-btn primary" onclick="createNewProfile()">+ 新建空白配置</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <div class="header">
+        <div class="header-left">
+            <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+            <div class="current-profile-name">
+                <span id="headerProfileName">未命名配置</span>
+                <span class="current-profile-sub">点击左侧菜单切换</span>
+            </div>
+        </div>
+        <div style="font-size: 12px; color: #00E676;">● Connected</div>
+    </div>
+
+    <div class="main-content">
+        <div class="log-area">
+            <div>[System] Ready.</div>
+            <div>[System] Loaded profile commands.</div>
+        </div>
+        <div class="splitter">====</div>
+        <div class="operation-area">
+            <div class="tabs">
+                <div class="tab active">简单指令</div>
+                <div class="tab">输入指令</div>
+                <div class="tab">枚举指令</div>
+                <div class="tab-add" onclick="openAddModal()">+</div>
+            </div>
+            <div class="cmd-container" id="cmdContainer">
+                </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="addModal">
+    <div class="modal-box">
+        <h3 style="margin-top:0">添加简单指令</h3>
+        
+        <div class="form-group">
+            <label class="label">指令名称</label>
+            <input type="text" class="input" placeholder="例如：开启电机">
+        </div>
+
+        <div class="form-group">
+            <label class="label">所属分组</label>
+            <div class="combo-box">
+                <select class="combo-select" id="groupSelect" onchange="checkNewGroup(this)">
+                    <option value="">-- 请选择分组 --</option>
+                    <option value="__NEW__" style="color: var(--primary);">+ 新建分组...</option>
+                </select>
+                <input type="text" class="combo-input" id="newGroupInput" placeholder="输入新分组名称">
+                <span class="combo-toggle" onclick="resetGroupSelect()" id="resetGroupBtn" style="display:none">取消新建</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="label">指令内容</label>
+            <textarea class="input" rows="3"></textarea>
+        </div>
+
+        <div class="btn-row">
+            <button class="action-btn" onclick="closeAddModal()" style="width:auto">取消</button>
+            <button class="action-btn primary" onclick="saveCommand()" style="width:auto">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 模拟数据 (本地存储结构) ---
+    // 实际开发中，这里的数据会存储在 localStorage 或 数据库中
+    let profiles = [
+        {
+            id: 'p1',
+            name: '无人机调试 (Drone)',
+            desc: '用于调试 F450 机架飞控',
+            groups: [
+                { name: '电机控制', cmds: ['解锁', '起飞', '降落'] },
+                { name: '传感器校准', cmds: ['校准陀螺仪', '校准罗盘'] }
+            ]
+        },
+        {
+            id: 'p2',
+            name: '智能灯控 (SmartHome)',
+            desc: '客厅吸顶灯测试',
+            groups: [
+                { name: '色彩测试', cmds: ['红光', '绿光', '蓝光', '暖白'] },
+                { name: '亮度测试', cmds: ['10%', '50%', '100%'] }
+            ]
+        }
+    ];
+
+    let currentProfileId = 'p1';
+
+    // --- 侧边栏逻辑 ---
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+        renderProfileList(); // 每次打开刷新列表
+    }
+
+    function renderProfileList() {
+        const listEl = document.getElementById('profileList');
+        listEl.innerHTML = '';
+        
+        profiles.forEach(p => {
+            const isActive = p.id === currentProfileId;
+            const div = document.createElement('div');
+            div.className = `profile-item ${isActive ? 'active' : ''}`;
+            div.onclick = () => switchProfile(p.id);
+            div.innerHTML = `
+                <div class="profile-info">
+                    <h4>${p.name}</h4>
+                    <p>${p.desc}</p>
+                </div>
+                <div class="profile-actions" onclick="event.stopPropagation(); deleteProfile('${p.id}')">
+                    🗑️
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+
+    // --- 核心功能：切换配置文件 ---
+    function switchProfile(id) {
+        currentProfileId = id;
+        const profile = profiles.find(p => p.id === id);
+        
+        // 1. 更新顶部标题
+        document.getElementById('headerProfileName').innerText = profile.name;
+        
+        // 2. 更新下方指令区 (这里主要演示数据刷新)
+        renderCommands(profile);
+        
+        // 3. 关闭侧边栏
+        toggleSidebar();
+        
+        // 4. 模拟日志提示
+        const logArea = document.querySelector('.log-area');
+        const entry = document.createElement('div');
+        entry.innerText = `[System] Switched to profile: ${profile.name}`;
+        entry.style.color = '#ffff00';
+        logArea.appendChild(entry);
+    }
+
+    // 渲染指令区内容
+    function renderCommands(profile) {
+        const container = document.getElementById('cmdContainer');
+        container.innerHTML = '';
+        
+        if(!profile.groups || profile.groups.length === 0) {
+            container.innerHTML = '<div style="color:#666; text-align:center; margin-top:20px;">暂无指令，请点击右上角 + 添加</div>';
+            return;
+        }
+
+        profile.groups.forEach(g => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'cmd-group';
+            
+            let btnsHtml = g.cmds.map(c => `<div class="cmd-btn">${c}</div>`).join('');
+            
+            groupDiv.innerHTML = `
+                <div class="group-header">${g.name}</div>
+                <div class="group-body">${btnsHtml}</div>
+            `;
+            container.appendChild(groupDiv);
+        });
+    }
+
+    // --- 导入功能模拟 ---
+    function importFromPaste() {
+        const jsonStr = prompt("请在此粘贴配置文件的 JSON 内容：");
+        if (jsonStr) {
+            try {
+                // 模拟解析
+                const newProfile = {
+                    id: 'p' + Date.now(),
+                    name: '导入的配置 ' + (profiles.length + 1),
+                    desc: '来源：剪贴板导入',
+                    groups: []
+                };
+                profiles.push(newProfile);
+                alert("导入成功！");
+                renderProfileList();
+            } catch (e) {
+                alert("JSON 格式错误");
+            }
+        }
+    }
+
+    function createNewProfile() {
+        const name = prompt("请输入新配置名称：");
+        if(name) {
+            profiles.push({
+                id: 'p' + Date.now(),
+                name: name,
+                desc: '本地新建',
+                groups: []
+            });
+            renderProfileList();
+        }
+    }
+
+    function deleteProfile(id) {
+        if(confirm("确定删除此配置吗？")) {
+            if (profiles.length <= 1) {
+                alert("至少保留一个配置");
+                return;
+            }
+            profiles = profiles.filter(p => p.id !== id);
+            if(currentProfileId === id) {
+                switchProfile(profiles[0].id);
+            }
+            renderProfileList();
+        }
+    }
+
+    // --- 模态框与新建分组逻辑 ---
+    function openAddModal() {
+        document.getElementById('addModal').classList.add('show');
+        
+        // 填充当前 Profile 的现有分组
+        const select = document.getElementById('groupSelect');
+        const profile = profiles.find(p => p.id === currentProfileId);
+        
+        // 清空旧选项，保留默认和新建
+        select.innerHTML = `<option value="">-- 请选择分组 --</option>`;
+        
+        if(profile.groups) {
+            profile.groups.forEach(g => {
+                const opt = document.createElement('option');
+                opt.value = g.name;
+                opt.innerText = g.name;
+                select.appendChild(opt);
+            });
+        }
+        
+        // 添加新建选项
+        const newOpt = document.createElement('option');
+        newOpt.value = "__NEW__";
+        newOpt.innerText = "+ 新建分组...";
+        newOpt.style.color = "var(--primary)";
+        select.appendChild(newOpt);
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.remove('show');
+        resetGroupSelect();
+    }
+
+    // 核心：检测是否选择了“新建分组”
+    function checkNewGroup(selectObj) {
+        if(selectObj.value === "__NEW__") {
+            // 隐藏下拉框，显示输入框
+            selectObj.style.display = 'none';
+            document.getElementById('newGroupInput').style.display = 'block';
+            document.getElementById('newGroupInput').focus();
+            document.getElementById('resetGroupBtn').style.display = 'block';
+        }
+    }
+
+    function resetGroupSelect() {
+        const select = document.getElementById('groupSelect');
+        select.style.display = 'block';
+        select.value = "";
+        
+        document.getElementById('newGroupInput').style.display = 'none';
+        document.getElementById('newGroupInput').value = "";
+        document.getElementById('resetGroupBtn').style.display = 'none';
+    }
+
+    function saveCommand() {
+        // 简单模拟保存
+        alert("指令保存逻辑：\n1. 判断是否新建分组 \n2. 写入当前 profiles 数组 \n3. 刷新界面");
+        closeAddModal();
+        // 实际操作中会调用 switchProfile(currentProfileId) 来刷新界面
+    }
+
+    // 初始化
+    switchProfile('p1');
+
+</script>
+
+</body>
+</html>

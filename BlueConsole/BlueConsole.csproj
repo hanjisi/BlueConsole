@@ -73,9 +73,6 @@
 	  <MauiXaml Update="Resources\Styles\GridSplitter.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
-	  <MauiXaml Update="Views\ConPage.xaml">
-	    <Generator>MSBuild:Compile</Generator>
-	  </MauiXaml>
 	  <MauiXaml Update="Views\ConsolePage.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>

@@ -16,7 +16,7 @@ namespace BlueConsole.ViewModels
         public ObservableCollection<LogItem> Logs { get; set; } = [];
 
         public ObservableCollection<ConsoleCommand> Commands { get; set; } = [];
-
+        public ObservableCollection<CommandTab> Tabs { get; } = [];
         public void ApplyQueryAttributes(IDictionary<string, object> query)
         {
             Device = query["Device"] as IDevice;
@@ -77,12 +77,36 @@ namespace BlueConsole.ViewModels
                 Name = "输入命令3，字符串",
                 ValueType = ValueType.String
             });
+
+
+ 
+            Tabs.Add(new CommandTab()
+            {
+                Title = "普通指令",
+                Commands = new ObservableCollection<ConsoleCommand> { Commands[0], Commands[1], Commands[2] }
+            });
+
+
+            Tabs.Add(new CommandTab()
+            {
+                Title = "输入指令",
+                Commands = new ObservableCollection<ConsoleCommand> { Commands[6], Commands[7], Commands[8] }
+            });
+
+            Tabs.Add(new CommandTab()
+            {
+                Title = "枚举指令",
+                Commands = new ObservableCollection<ConsoleCommand> { Commands[3], Commands[4], Commands[5] }
+            });
         }
 
 
         [RelayCommand]
         public void AddLog()
         {
+            Shell.Current.FlyoutIsPresented = true;
+
+
             Logs.Add(new LogItem(@"====== OEM T Recorder======
 Softvar:02.04.00.01
 Hardvar:02.03.00.00

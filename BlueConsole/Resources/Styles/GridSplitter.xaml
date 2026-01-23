@@ -21,7 +21,7 @@
                 <Grid
                     x:Name="PART_DragHandle"
                     BackgroundColor="Transparent"
-                    HeightRequest="32"
+                    HeightRequest="16"
                     HorizontalOptions="Center"
                     VerticalOptions="Start">
 
@@ -55,7 +55,7 @@
         <Setter Property="HorizontalOptions" Value="Fill" />
         <Setter Property="VerticalOptions" Value="Fill" />
         <Setter Property="MinimumWidthRequest" Value="16" />
-        <Setter Property="MinimumHeightRequest" Value="50" />
+        <Setter Property="MinimumHeightRequest" Value="16" />
         <Setter Property="ControlTemplate" Value="{StaticResource GridSplitterControlTemplate}" />
     </Style>
 </ResourceDictionary>

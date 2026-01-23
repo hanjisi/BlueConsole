@@ -13,7 +13,6 @@ namespace BlueConsole
         {
             
             Routing.RegisterRoute("ConsolePage", typeof(ConsolePage));
-            Routing.RegisterRoute("ConPage", typeof(ConPage));
             return new Window(new AppShell());
         }
     }

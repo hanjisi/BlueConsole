@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>BlueConsole Pro - 完整版</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --bg-sidebar: #181818;
+            --primary: #2196F3;
+            --primary-hover: #1976D2;
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --border: #333333;
+            --rx-green: #00E676;
+            --tx-blue: #448AFF;
+            --danger: #FF5252;
+            --sidebar-width: 260px;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', Roboto, Helvetica, sans-serif; background: var(--bg-dark); color: var(--text-main); overflow: hidden; }
+
+        /* --- UI 框架 --- */
+        .app-container { display: flex; flex-direction: column; height: 100%; position: relative; z-index: 1; transition: transform 0.3s; }
+
+        /* 顶部栏 */
+        .header { height: 50px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 15px; justify-content: space-between; flex-shrink: 0; }
+        .menu-btn { cursor: pointer; font-size: 22px; padding: 5px; margin-right: 10px; }
+        .header-info { display: flex; flex-direction: column; }
+        .profile-name { font-weight: bold; font-size: 14px; }
+        .profile-hint { font-size: 10px; color: var(--primary); }
+        .conn-status { font-size: 12px; color: var(--rx-green); display: flex; align-items: center; gap: 5px; }
+
+        /* 日志区 */
+        .log-area { flex: 1; background: #000; padding: 10px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 13px; min-height: 100px; }
+        .log-row { margin-bottom: 2px; line-height: 1.4; word-break: break-all; }
+        .ts { color: #666; margin-right: 6px; }
+        .rx { color: var(--rx-green); }
+        .tx { color: var(--tx-blue); }
+
+        /* 分割条 */
+        .splitter { height: 10px; background: #262626; border-top: 1px solid #333; border-bottom: 1px solid #333; cursor: row-resize; flex-shrink: 0; display: flex; justify-content: center; align-items: center; }
+        .splitter-handle { width: 40px; height: 4px; background: #444; border-radius: 2px; }
+
+        /* 底部操作区 */
+        .operation-area { height: 400px; background: var(--bg-dark); display: flex; flex-direction: column; }
+
+        /* 全局工具栏 (HEX, 发送配置) */
+        .global-tools { padding: 8px 12px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 15px; font-size: 12px; flex-shrink: 0; flex-wrap: wrap; }
+        .tool-group { display: flex; align-items: center; gap: 5px; }
+        .t-checkbox { accent-color: var(--primary); }
+        .t-select { background: #333; color: white; border: 1px solid #444; padding: 2px 5px; border-radius: 3px; }
+        .t-btn { background: #333; border: 1px solid #444; color: #ccc; padding: 2px 8px; border-radius: 3px; cursor: pointer; }
+        .t-btn:hover { background: #444; }
+
+        /* 快捷指令 Tabs */
+        .tabs { display: flex; background: #151515; border-bottom: 1px solid #333; }
+        .tab { padding: 10px 20px; cursor: pointer; color: #888; font-size: 14px; border-bottom: 2px solid transparent; transition: 0.2s; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: #222; }
+        .tab-add { margin-left: auto; padding: 10px 15px; cursor: pointer; color: #888; }
+        .tab-add:hover { color: white; background: #333; }
+
+        /* 指令容器 */
+        .cmd-container { flex: 1; overflow-y: auto; padding: 10px; }
+        .cmd-group { margin-bottom: 12px; border: 1px solid #333; border-radius: 6px; overflow: hidden; }
+        .group-head { background: #252525; padding: 8px 12px; font-size: 12px; font-weight: bold; color: #ddd; display: flex; justify-content: space-between; cursor: pointer; }
+        .group-body { padding: 10px; background: #1e1e1e; }
+        
+        /* 布局模式: Grid (简单指令) vs List (输入/枚举) */
+        .layout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+        .layout-list { display: flex; flex-direction: column; gap: 8px; }
+
+        /* 简单指令按钮 */
+        .btn-simple { background: #333; color: #eee; border: 1px solid #444; padding: 10px; border-radius: 4px; text-align: center; font-size: 13px; cursor: pointer; user-select: none; }
+        .btn-simple:active { background: var(--primary); border-color: var(--primary); }
+
+        /* 输入/枚举指令行 */
+        .cmd-row { display: flex; gap: 8px; align-items: center; background: #2a2a2a; padding: 5px; border-radius: 4px; border: 1px solid #333; }
+        .cmd-label { width: 80px; font-size: 12px; color: #aaa; flex-shrink: 0; padding-left: 5px; }
+        .cmd-input-ctrl { flex: 1; background: #121212; border: 1px solid #444; color: white; padding: 6px; border-radius: 3px; font-size: 13px; }
+        .btn-send-small { background: #333; color: var(--primary); border: 1px solid #333; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .btn-send-small:active { background: #444; }
+
+        /* --- 侧边栏 --- */
+        .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 900; opacity: 0; pointer-events: none; transition: 0.3s; }
+        .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+        .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: var(--sidebar-width); background: var(--bg-sidebar); z-index: 901; transform: translateX(-100%); transition: transform 0.3s ease; box-shadow: 2px 0 10px rgba(0,0,0,0.5); display: flex; flex-direction: column; }
+        .sidebar.open { transform: translateX(0); }
+        .sb-header { padding: 20px; border-bottom: 1px solid #333; font-size: 18px; font-weight: bold; }
+        .sb-list { flex: 1; overflow-y: auto; }
+        .sb-item { padding: 15px 20px; border-bottom: 1px solid #222; cursor: pointer; display: flex; justify-content: space-between; }
+        .sb-item:hover { background: #222; }
+        .sb-item.active { background: #2a2a2a; border-left: 4px solid var(--primary); }
+        .sb-actions { padding: 15px; border-top: 1px solid #333; }
+        .btn-block { display: block; width: 100%; padding: 10px; margin-bottom: 10px; background: #333; border: 1px solid #444; color: white; cursor: pointer; border-radius: 4px; }
+        .btn-block.primary { background: var(--primary); border-color: var(--primary); }
+
+        /* --- 右键/长按菜单 --- */
+        .ctx-menu { position: fixed; bottom: 0; left: 0; right: 0; background: #252525; border-radius: 12px 12px 0 0; z-index: 2000; transform: translateY(100%); transition: 0.2s; box-shadow: 0 -5px 20px rgba(0,0,0,0.5); }
+        .ctx-menu.open { transform: translateY(0); }
+        .ctx-head { padding: 15px; text-align: center; color: #888; font-size: 12px; border-bottom: 1px solid #333; }
+        .ctx-item { padding: 16px; text-align: center; font-size: 16px; border-bottom: 1px solid #333; cursor: pointer; }
+        .ctx-item.danger { color: var(--danger); }
+        .ctx-item.cancel { color: #aaa; border: none; margin-top: 5px; }
+
+        /* --- 弹窗 Modal --- */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 3000; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-box { background: var(--bg-panel); width: 90%; max-width: 450px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .modal-head { padding: 15px; border-bottom: 1px solid #333; font-weight: bold; }
+        .modal-body { padding: 20px; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
+        .form-input { width: 100%; padding: 10px; background: #121212; border: 1px solid #444; color: white; border-radius: 4px; }
+        .modal-foot { padding: 15px; border-top: 1px solid #333; display: flex; justify-content: flex-end; gap: 10px; }
+        
+        /* 动态字段显隐 */
+        .d-field { display: none; }
+        .d-field.show { display: block; }
+        
+        /* 枚举列表构建样式 */
+        .enum-row { display: flex; gap: 5px; margin-bottom: 5px; }
+        .btn-icon { width: 30px; background: #333; border: 1px solid #444; color: var(--danger); cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <div class="sb-header">BlueConsole</div>
+        <div class="sb-list" id="profileList"></div>
+        <div class="sb-actions">
+            <button class="btn-block" onclick="createProfile()">+ 新建配置</button>
+            <button class="btn-block" onclick="importProfile()">☁️ 导入配置 (JSON)</button>
+        </div>
+    </div>
+
+    <div class="app-container" id="app">
+        <div class="header">
+            <div style="display:flex; align-items:center;">
+                <div class="menu-btn" onclick="toggleSidebar()">☰</div>
+                <div class="header-info">
+                    <span class="profile-name" id="currentProfileName">Default</span>
+                    <span class="profile-hint">点击菜单切换</span>
+                </div>
+            </div>
+            <div class="conn-status">● Connected</div>
+        </div>
+
+        <div class="log-area" id="logArea">
+            <div class="log-row"><span class="ts">[12:00:00]</span><span class="rx">System Ready...</span></div>
+        </div>
+
+        <div class="splitter" id="splitter"><div class="splitter-handle"></div></div>
+
+        <div class="operation-area" id="opArea">
+            
+            <div class="global-tools">
+                <div class="tool-group">
+                    <input type="checkbox" id="globalHex" class="t-checkbox">
+                    <label for="globalHex">HEX发送</label>
+                </div>
+                <div class="tool-group">
+                    <label>行尾:</label>
+                    <select id="globalEnd" class="t-select">
+                        <option value="">None</option>
+                        <option value="\r\n" selected>\r\n</option>
+                        <option value="\n">\n</option>
+                        <option value="\r">\r</option>
+                    </select>
+                </div>
+                <div class="tool-group" style="margin-left:auto">
+                    <label>循环(ms):</label>
+                    <input type="number" id="loopMs" value="1000" style="width:50px" class="t-select">
+                    <button class="t-btn" id="loopBtn" onclick="toggleLoop()">开始</button>
+                </div>
+                <button class="t-btn" onclick="document.getElementById('logArea').innerHTML=''">清屏</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('simple')" id="tab-simple">简单指令</div>
+                <div class="tab" onclick="switchTab('input')" id="tab-input">输入指令</div>
+                <div class="tab" onclick="switchTab('enum')" id="tab-enum">枚举指令</div>
+                <div class="tab-add" onclick="openEditor(false)">+</div>
+            </div>
+
+            <div class="cmd-container" id="cmdContainer">
+                </div>
+        </div>
+    </div>
+
+    <div class="sidebar-overlay" id="ctxOverlay" onclick="hideCtx()"></div>
+    <div class="ctx-menu" id="ctxMenu">
+        <div class="ctx-head" id="ctxTitle">操作指令</div>
+        <div class="ctx-item" onclick="handleEdit()">✏️ 编辑指令</div>
+        <div class="ctx-item danger" onclick="handleDelete()">🗑️ 删除指令</div>
+        <div class="ctx-item cancel" onclick="hideCtx()">取消</div>
+    </div>
+
+    <div class="modal" id="editorModal">
+        <div class="modal-box">
+            <div class="modal-head" id="modalTitle">添加指令</div>
+            <div class="modal-body">
+                
+                <div class="form-group" id="typeSelectGroup">
+                    <label class="form-label">指令类型</label>
+                    <select class="form-input" id="editType" onchange="updateEditorFields()">
+                        <option value="simple">简单指令 (点击发送)</option>
+                        <option value="input">输入指令 (填空发送)</option>
+                        <option value="enum">枚举指令 (下拉选择)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">指令名称</label>
+                    <input type="text" class="form-input" id="editName" placeholder="例如：打开电机">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">所属分组</label>
+                    <div style="position: relative;">
+                        <select class="form-input" id="groupSelect" onchange="checkNewGroup(this)">
+                            </select>
+                        <input type="text" class="form-input" id="newGroupInput" placeholder="输入新分组名称" style="display:none; margin-top:5px; border-color:var(--primary)">
+                    </div>
+                </div>
+
+                <div id="fields-simple" class="d-field">
+                    <div class="form-group">
+                        <label class="form-label">发送内容</label>
+                        <textarea class="form-input" id="simpleContent" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" id="simpleHex"> 此指令强制使用 HEX</label>
+                    </div>
+                </div>
+
+                <div id="fields-input" class="d-field">
+                    <div class="form-group">
+                        <label class="form-label">前缀 (Prefix)</label>
+                        <input type="text" class="form-input" id="inputPrefix" placeholder="例如: SET_VOLT=">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">后缀 (Suffix)</label>
+                        <input type="text" class="form-input" id="inputSuffix" placeholder="例如: mV">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">提示占位符</label>
+                        <input type="text" class="form-input" id="inputPlaceholder" placeholder="例如: 3300">
+                    </div>
+                </div>
+
+                <div id="fields-enum" class="d-field">
+                    <label class="form-label">枚举列表 (显示名 | 发送值)</label>
+                    <div id="enumBuilder" style="max-height:150px; overflow-y:auto; margin-bottom:10px;"></div>
+                    <button class="t-btn" style="width:100%" onclick="addEnumRow()">+ 添加选项</button>
+                </div>
+
+            </div>
+            <div class="modal-foot">
+                <button class="t-btn" onclick="closeEditor()">取消</button>
+                <button class="btn-block primary" style="width:auto; margin:0;" onclick="saveCommand()">保存</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // --- 1. 数据结构与初始化 ---
+    // 为了支持 Tabs 分类，我们将数据按类型存储在 Profile 中
+    let profiles = [
+        {
+            id: 'p1',
+            name: '演示配置 (Demo)',
+            // 数据分为三类，每类是一个分组数组
+            // 结构: [ { group: "组名", items: [ {name, ...data} ] } ]
+            simple: [
+                { group: '系统控制', items: [{name:'复位', content:'RST'}, {name:'查询', content:'?'}] },
+                { group: 'LED测试', items: [{name:'红灯开', content:'LED_R_ON'}, {name:'红灯关', content:'LED_R_OFF'}] }
+            ],
+            input: [
+                { group: '参数设置', items: [{name:'设置电压', pre:'SET_V=', suf:'mV', hint:'3300'}] }
+            ],
+            enum: [
+                { group: '模式选择', items: [{name:'工作模式', options:[{k:'低功耗',v:'MODE_LOW'},{k:'高性能',v:'MODE_HIGH'}]}] }
+            ]
+        }
+    ];
+
+    let state = {
+        currentProfileId: 'p1',
+        currentTab: 'simple', // simple | input | enum
+        editTarget: null // { type, groupIndex, itemIndex } 用于定位正在编辑的指令
+    };
+
+    // 初始化
+    window.onload = () => {
+        renderSidebar();
+        renderMain();
+    };
+
+    // --- 2. 核心渲染逻辑 ---
+    
+    function getCurrentProfile() {
+        return profiles.find(p => p.id === state.currentProfileId);
+    }
+
+    function renderMain() {
+        const p = getCurrentProfile();
+        document.getElementById('currentProfileName').innerText = p.name;
+        
+        // 更新 Tab 样式
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(`tab-${state.currentTab}`).classList.add('active');
+
+        // 渲染指令区
+        const container = document.getElementById('cmdContainer');
+        container.innerHTML = '';
+        
+        // 获取当前 Tab 对应的数据列表
+        const groups = p[state.currentTab] || [];
+
+        if (groups.length === 0) {
+            container.innerHTML = `<div style="text-align:center; color:#555; margin-top:30px">暂无 ${state.currentTab} 指令<br>点击右上角 + 添加</div>`;
+            return;
+        }
+
+        // 遍历分组渲染
+        groups.forEach((g, gIndex) => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'cmd-group';
+            
+            // 渲染 Items
+            let itemsHtml = '';
+            if (state.currentTab === 'simple') {
+                // 网格布局
+                itemsHtml = `<div class="group-body layout-grid">` + 
+                    g.items.map((item, i) => `
+                        <div class="btn-simple" 
+                             oncontextmenu="openCtx(event, '${state.currentTab}', ${gIndex}, ${i})"
+                             onclick="sendSimple('${item.content}')">
+                            ${item.name}
+                        </div>
+                    `).join('') + `</div>`;
+            } else if (state.currentTab === 'input') {
+                // 列表布局
+                itemsHtml = `<div class="group-body layout-list">` + 
+                    g.items.map((item, i) => `
+                        <div class="cmd-row" oncontextmenu="openCtx(event, '${state.currentTab}', ${gIndex}, ${i})">
+                            <div class="cmd-label">${item.name}</div>
+                            <input type="text" class="cmd-input-ctrl" id="inp_${gIndex}_${i}" placeholder="${item.hint||''}">
+                            <button class="btn-send-small" onclick="sendInput('${item.pre}', '${item.suffix||''}', 'inp_${gIndex}_${i}')">TX</button>
+                        </div>
+                    `).join('') + `</div>`;
+            } else {
+                // 枚举列表布局
+                itemsHtml = `<div class="group-body layout-list">` + 
+                    g.items.map((item, i) => {
+                        const opts = item.options.map(o => `<option value="${o.v}">${o.k}</option>`).join('');
+                        return `
+                        <div class="cmd-row" oncontextmenu="openCtx(event, '${state.currentTab}', ${gIndex}, ${i})">
+                            <div class="cmd-label">${item.name}</div>
+                            <select class="cmd-input-ctrl" id="enum_${gIndex}_${i}">${opts}</select>
+                            <button class="btn-send-small" onclick="sendEnum('enum_${gIndex}_${i}')">TX</button>
+                        </div>
+                    `}).join('') + `</div>`;
+            }
+
+            groupEl.innerHTML = `
+                <div class="group-head" onclick="toggleGroup(this)">
+                    <span>${g.group}</span> <span style="font-size:10px">▼</span>
+                </div>
+                ${itemsHtml}
+            `;
+            container.appendChild(groupEl);
+        });
+    }
+
+    function switchTab(t) {
+        state.currentTab = t;
+        renderMain();
+    }
+
+    function toggleGroup(head) {
+        const body = head.nextElementSibling;
+        if (body.style.display === 'none') {
+            body.style.display = (state.currentTab === 'simple') ? 'grid' : 'flex';
+        } else {
+            body.style.display = 'none';
+        }
+    }
+
+    // --- 3. 发送逻辑 (模拟) ---
+
+    function appendLog(type, msg) {
+        const div = document.createElement('div');
+        div.className = 'log-row';
+        const time = new Date().toLocaleTimeString('en-GB');
+        div.innerHTML = `<span class="ts">[${time}]</span><span class="${type}">${type.toUpperCase()}: ${msg}</span>`;
+        const area = document.getElementById('logArea');
+        area.appendChild(div);
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function processSend(raw) {
+        // 1. 获取全局配置
+        const isHex = document.getElementById('globalHex').checked;
+        const endChar = document.getElementById('globalEnd').value.replace('\\r', '\r').replace('\\n', '\n');
+        
+        let finalStr = raw + endChar;
+        // 如果是 HEX 模式，这里应做转换逻辑，这里简化为打印
+        const displayStr = isHex ? `[HEX] ${raw}` : finalStr.replace(/\r/g,'\\r').replace(/\n/g,'\\n');
+        
+        appendLog('tx', displayStr);
+        
+        // 模拟回包
+        setTimeout(() => appendLog('rx', 'OK'), 200);
+    }
+
+    function sendSimple(content) { processSend(content); }
+    function sendInput(pre, suf, inputId) {
+        const val = document.getElementById(inputId).value;
+        if(!val) return;
+        processSend((pre||'') + val + (suf||''));
+    }
+    function sendEnum(selectId) {
+        const val = document.getElementById(selectId).value;
+        processSend(val);
+    }
+
+    // --- 4. 侧边栏 & 配置文件逻辑 ---
+
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-overlay').classList.toggle('open');
+    }
+
+    function renderSidebar() {
+        const list = document.getElementById('profileList');
+        list.innerHTML = profiles.map(p => `
+            <div class="sb-item ${p.id === state.currentProfileId ? 'active' : ''}" onclick="switchProfile('${p.id}')">
+                <div>${p.name}</div>
+                ${profiles.length > 1 ? `<div style="color:#666; font-size:12px" onclick="event.stopPropagation(); deleteProfile('${p.id}')">✕</div>` : ''}
+            </div>
+        `).join('');
+    }
+
+    function switchProfile(id) {
+        state.currentProfileId = id;
+        renderSidebar();
+        renderMain();
+        toggleSidebar();
+    }
+
+    function createProfile() {
+        const name = prompt("输入新配置名称:");
+        if (name) {
+            profiles.push({ id: 'p'+Date.now(), name: name, simple:[], input:[], enum:[] });
+            renderSidebar();
+        }
+    }
+    
+    function deleteProfile(id) {
+        if(confirm('删除此配置？')) {
+            profiles = profiles.filter(p => p.id !== id);
+            if(state.currentProfileId === id) state.currentProfileId = profiles[0].id;
+            renderSidebar();
+        }
+    }
+
+    // --- 5. 编辑器 & 上下文菜单逻辑 ---
+
+    // 右键菜单
+    function openCtx(e, type, gIdx, iIdx) {
+        e.preventDefault();
+        state.editTarget = { type, gIdx, iIdx };
+        const menu = document.getElementById('ctxMenu');
+        document.getElementById('ctxOverlay').classList.add('open');
+        menu.classList.add('open');
+    }
+    function hideCtx() {
+        document.getElementById('ctxOverlay').classList.remove('open');
+        document.getElementById('ctxMenu').classList.remove('open');
+    }
+
+    function handleDelete() {
+        if(!confirm('确定删除?')) return;
+        const p = getCurrentProfile();
+        const { type, gIdx, iIdx } = state.editTarget;
+        
+        // 删除项
+        p[type][gIdx].items.splice(iIdx, 1);
+        // 如果组空了，删组
+        if(p[type][gIdx].items.length === 0) p[type].splice(gIdx, 1);
+        
+        hideCtx();
+        renderMain();
+    }
+
+    function handleEdit() {
+        hideCtx();
+        openEditor(true);
+    }
+
+    // 打开编辑器 (isEdit: boolean)
+    function openEditor(isEdit) {
+        const modal = document.getElementById('editorModal');
+        const p = getCurrentProfile();
+        
+        // 重置/填充表单
+        document.getElementById('newGroupInput').style.display = 'none';
+        document.getElementById('groupSelect').style.display = 'block';
+        
+        if (isEdit && state.editTarget) {
+            // === 编辑模式 ===
+            document.getElementById('modalTitle').innerText = "编辑指令";
+            const { type, gIdx, iIdx } = state.editTarget;
+            const item = p[type][gIdx].items[iIdx];
+            const groupName = p[type][gIdx].group;
+
+            // 锁定类型选择
+            const typeSel = document.getElementById('editType');
+            typeSel.value = type;
+            typeSel.disabled = true;
+            
+            // 填充名字
+            document.getElementById('editName').value = item.name;
+
+            // 填充字段
+            if(type === 'simple') document.getElementById('simpleContent').value = item.content;
+            if(type === 'input') {
+                document.getElementById('inputPrefix').value = item.pre || '';
+                document.getElementById('inputSuffix').value = item.suf || '';
+                document.getElementById('inputPlaceholder').value = item.hint || '';
+            }
+            if(type === 'enum') {
+                document.getElementById('enumBuilder').innerHTML = '';
+                item.options.forEach(o => addEnumRow(o.k, o.v));
+            }
+
+            // 填充并选中分组
+            fillGroupSelect(type, groupName);
+            
+            modal.dataset.mode = 'edit';
+        } else {
+            // === 新建模式 ===
+            document.getElementById('modalTitle').innerText = "添加指令";
+            document.getElementById('editType').disabled = false;
+            document.getElementById('editType').value = state.currentTab; // 默认选中当前tab
+            
+            document.getElementById('editName').value = '';
+            document.getElementById('simpleContent').value = '';
+            document.getElementById('inputPrefix').value = '';
+            document.getElementById('enumBuilder').innerHTML = '';
+            addEnumRow(); // 默认加一行
+
+            fillGroupSelect(state.currentTab, '');
+            modal.dataset.mode = 'add';
+        }
+
+        updateEditorFields(); // 刷新字段显示
+        modal.classList.add('show');
+    }
+
+    function closeEditor() {
+        document.getElementById('editorModal').classList.remove('show');
+    }
+
+    // 动态显隐字段
+    function updateEditorFields() {
+        const type = document.getElementById('editType').value;
+        document.querySelectorAll('.d-field').forEach(el => el.classList.remove('show'));
+        document.getElementById(`fields-${type}`).classList.add('show');
+        
+        // 如果是新建模式，切类型时要刷新分组列表（因为不同类型的分组是分开存的）
+        if (document.getElementById('editorModal').dataset.mode === 'add') {
+             fillGroupSelect(type, '');
+        }
+    }
+
+    // 分组下拉框逻辑
+    function fillGroupSelect(type, selectedVal) {
+        const p = getCurrentProfile();
+        const select = document.getElementById('groupSelect');
+        select.innerHTML = `<option value="">-- 选择分组 --</option>`;
+        
+        // 现有分组
+        const groups = p[type] || [];
+        groups.forEach(g => {
+            const opt = document.createElement('option');
+            opt.value = g.group;
+            opt.innerText = g.group;
+            if(g.group === selectedVal) opt.selected = true;
+            select.appendChild(opt);
+        });
+        
+        // 新建选项
+        const newOpt = document.createElement('option');
+        newOpt.value = '__NEW__';
+        newOpt.innerText = '+ 新建分组...';
+        newOpt.style.color = '#2196F3';
+        select.appendChild(newOpt);
+    }
+
+    function checkNewGroup(sel) {
+        if(sel.value === '__NEW__') {
+            sel.style.display = 'none';
+            const inp = document.getElementById('newGroupInput');
+            inp.style.display = 'block';
+            inp.focus();
+        }
+    }
+
+    // 枚举构建器逻辑
+    function addEnumRow(k='', v='') {
+        const div = document.createElement('div');
+        div.className = 'enum-row';
+        div.innerHTML = `
+            <input type="text" class="form-input" placeholder="显示名" value="${k}" style="flex:1">
+            <input type="text" class="form-input" placeholder="发送值" value="${v}" style="flex:1">
+            <button class="btn-icon" onclick="this.parentElement.remove()">×</button>
+        `;
+        document.getElementById('enumBuilder').appendChild(div);
+    }
+
+    // 保存逻辑
+    function saveCommand() {
+        const mode = document.getElementById('editorModal').dataset.mode;
+        const type = document.getElementById('editType').value;
+        const name = document.getElementById('editName').value;
+        
+        // 获取分组名
+        let groupName = document.getElementById('groupSelect').value;
+        if (groupName === '__NEW__') groupName = document.getElementById('newGroupInput').value;
+        if (!name || !groupName) { alert('请填写名称和分组'); return; }
+
+        // 构造数据对象
+        let newItem = { name: name };
+        if (type === 'simple') {
+            newItem.content = document.getElementById('simpleContent').value;
+        } else if (type === 'input') {
+            newItem.pre = document.getElementById('inputPrefix').value;
+            newItem.suf = document.getElementById('inputSuffix').value;
+            newItem.hint = document.getElementById('inputPlaceholder').value;
+        } else if (type === 'enum') {
+            newItem.options = [];
+            document.querySelectorAll('#enumBuilder .enum-row').forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                if(inputs[0].value) newItem.options.push({ k: inputs[0].value, v: inputs[1].value });
+            });
+        }
+
+        const p = getCurrentProfile();
+
+        if (mode === 'edit') {
+            // --- 更新 ---
+            const { gIdx, iIdx } = state.editTarget;
+            const oldGroup = p[type][gIdx];
+            
+            // 如果分组没变
+            if (oldGroup.group === groupName) {
+                oldGroup.items[iIdx] = newItem;
+            } else {
+                // 分组变了：移出旧组 -> 加入新组
+                oldGroup.items.splice(iIdx, 1);
+                if(oldGroup.items.length===0) p[type].splice(gIdx, 1);
+                addToGroup(p, type, groupName, newItem);
+            }
+        } else {
+            // --- 新增 ---
+            addToGroup(p, type, groupName, newItem);
+        }
+
+        closeEditor();
+        renderMain();
+    }
+
+    function addToGroup(profile, type, gName, item) {
+        let targetGroup = profile[type].find(g => g.group === gName);
+        if (!targetGroup) {
+            targetGroup = { group: gName, items: [] };
+            profile[type].push(targetGroup);
+        }
+        targetGroup.items.push(item);
+    }
+
+    // --- 6. 拖动 Splitter ---
+    const splitter = document.getElementById('splitter');
+    const app = document.getElementById('app');
+    let isDragging = false;
+    splitter.addEventListener('mousedown', () => isDragging = true);
+    document.addEventListener('mouseup', () => isDragging = false);
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const h = e.clientY - 50; // 减去 header 高度
+        if (h > 100 && h < app.clientHeight - 100) {
+            document.getElementById('logArea').style.flex = 'none';
+            document.getElementById('logArea').style.height = h + 'px';
+        }
+    });
+
+    // --- 7. 循环发送逻辑 ---
+    let loopTimer = null;
+    function toggleLoop() {
+        const btn = document.getElementById('loopBtn');
+        if (loopTimer) {
+            clearInterval(loopTimer);
+            loopTimer = null;
+            btn.innerText = "开始";
+            btn.style.color = "#ccc";
+        } else {
+            const ms = parseInt(document.getElementById('loopMs').value) || 1000;
+            // 这里为了演示，假设循环发送一条固定指令，实际可关联自定义发送区
+            loopTimer = setInterval(() => {
+                processSend("LOOP_DATA");
+            }, ms);
+            btn.innerText = "停止";
+            btn.style.color = "#00E676";
+        }
+    }
+
+</script>
+</body>
+</html>
